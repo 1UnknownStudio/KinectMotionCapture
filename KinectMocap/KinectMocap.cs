@@ -7,10 +7,19 @@ namespace KinectMocap
 {
     class KinectMocap
     {
-        private SkeletalTracker m_skeletalTracker;
+        private SkeletalTracker skeletalTracker;
 
         public KinectMocap() {
-            m_skeletalTracker = new SkeletalTracker();
+            skeletalTracker = new SkeletalTracker();
+        }
+
+        public void Init() {
+            skeletalTracker.StartKinectST();
+        }
+
+        public bool Update() {
+
+            return true;
         }
     }
 }

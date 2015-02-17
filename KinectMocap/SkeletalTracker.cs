@@ -6,40 +6,75 @@ using Microsoft.Kinect;
 
 namespace KinectMocap {
 
-    class SkeletalTracker {
+    class SkeletonSensor {
+        public KinectSensor kinect;
+        public Skeleton[] skeletonData;
+    };
 
-        private KinectSensor kinect;
-        private Skeleton[] skeletonData;
+    class SkeletalTracker {
+        private SkeletonSensor[] sensors;
+        private const int NUM_SENSORS = 3;
+        //private KinectSensor kinect;
+        //private Skeleton[] skeletonData;
 
         public void StartKinectST() {
-            kinect = KinectSensor.KinectSensors.FirstOrDefault(s => s.Status == KinectStatus.Connected); // Get first Kinect Sensor
-            kinect.SkeletonStream.Enable(); // Enable skeletal tracking
+            sensors = new SkeletonSensor[NUM_SENSORS];
 
-            skeletonData = new Skeleton[kinect.SkeletonStream.FrameSkeletonArrayLength]; // Allocate ST data
+            for (int i = 0; i < NUM_SENSORS; i++)
+                sensors[i] = new SkeletonSensor();
 
-            kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get Ready for Skeleton Ready Events
+            for ( int i = 0, j = 0; i < KinectSensor.KinectSensors.Count; i++ ) {
+                if (j >= NUM_SENSORS)
+                    break;
 
-            kinect.Start(); // Start Kinect sensor
+                if (KinectSensor.KinectSensors[i].Status == KinectStatus.Connected) {
+                    sensors[j].kinect = KinectSensor.KinectSensors[i];
+                    j++;
+                }
+            }
+
+            for (int i = 0; i < sensors.Length; i++) {
+                sensors[i].kinect = KinectSensor.KinectSensors.FirstOrDefault(s => s.Status == KinectStatus.Connected); // Get first Kinect Sensor
+                sensors[i].kinect.SkeletonStream.Enable(); // Enable skeletal tracking
+
+                sensors[i].skeletonData = new Skeleton[sensors[i].kinect.SkeletonStream.FrameSkeletonArrayLength]; // Allocate ST data
+
+                sensors[i].kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get Ready for Skeleton Ready Events
+
+                sensors[i].kinect.Start(); // Start Kinect sensor
+            }
         }
 
         private void kinect_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e) {
             using (SkeletonFrame skeletonFrame = e.OpenSkeletonFrame()) { // Open the Skeleton frame
 
-                if (skeletonFrame != null && this.skeletonData != null) // check that a frame is available
-                    skeletonFrame.CopySkeletonDataTo(this.skeletonData); // get the skeletal information in this frame
+                SkeletonSensor temp = null;
+
+                foreach (SkeletonSensor sensor in sensors) {
+                    if (sender == sensor.kinect)
+                        temp = sensor;
+                }
+
+                if (temp == null) {
+                    Console.WriteLine("sender didn't match any active kinects");
+                    return;
+                }
+
+                if (skeletonFrame != null && temp.skeletonData != null) // check that a frame is available
+                    skeletonFrame.CopySkeletonDataTo(temp.skeletonData); // get the skeletal information in this frame
             }
         }
 
-        private void DrawSkeletons() {
-            foreach (Skeleton skeleton in this.skeletonData) {
-                if (skeleton.TrackingState == SkeletonTrackingState.Tracked) {
-                    DrawTrackedSkeletonJoints(skeleton.Joints);
-                }
-                else if (skeleton.TrackingState == SkeletonTrackingState.PositionOnly) {
-                    //DrawSkeletonPosition(skeleton.Position);
-                }
-            }
-        }
+        //private void DrawSkeletons() {
+        //    foreach (Skeleton skeleton in this.skeletonData) {
+        //        if (skeleton.TrackingState == SkeletonTrackingState.Tracked) {
+        //            DrawTrackedSkeletonJoints(skeleton.Joints);
+        //        }
+        //        else if (skeleton.TrackingState == SkeletonTrackingState.PositionOnly) {
+        //            //DrawSkeletonPosition(skeleton.Position);
+        //        }
+        //    }
+        //}
 
         private void DrawTrackedSkeletonJoints(JointCollection jointCollection)
         {
@@ -96,38 +131,38 @@ namespace KinectMocap {
             }
         }
 
-        private void TrackClosestSkeleton() {
-            if (this.kinect != null && this.kinect.SkeletonStream != null) {
-                if (!this.kinect.SkeletonStream.AppChoosesSkeletons) {
-                    this.kinect.SkeletonStream.AppChoosesSkeletons = true; // Ensure AppChoosesSkeletons is set
-                }
+        //private void TrackClosestSkeleton() {
+        //    if (this.kinect != null && this.kinect.SkeletonStream != null) {
+        //        if (!this.kinect.SkeletonStream.AppChoosesSkeletons) {
+        //            this.kinect.SkeletonStream.AppChoosesSkeletons = true; // Ensure AppChoosesSkeletons is set
+        //        }
 
-                float closestDistance = 10000f; // Start with a far enough distance
-                int closestID = 0;
+        //        float closestDistance = 10000f; // Start with a far enough distance
+        //        int closestID = 0;
 
-                foreach (Skeleton skeleton in this.skeletonData.Where(s => s.TrackingState != SkeletonTrackingState.NotTracked)) {
-                    if (skeleton.Position.Z < closestDistance)
-                    {
-                        closestID = skeleton.TrackingId;
-                        closestDistance = skeleton.Position.Z;
-                    }
-                }
+        //        foreach (Skeleton skeleton in this.skeletonData.Where(s => s.TrackingState != SkeletonTrackingState.NotTracked)) {
+        //            if (skeleton.Position.Z < closestDistance)
+        //            {
+        //                closestID = skeleton.TrackingId;
+        //                closestDistance = skeleton.Position.Z;
+        //            }
+        //        }
 
-                if (closestID > 0) {
-                    this.kinect.SkeletonStream.ChooseSkeletons(closestID); // Track this skeleton
-                }
-            }
-        }
+        //        if (closestID > 0) {
+        //            this.kinect.SkeletonStream.ChooseSkeletons(closestID); // Track this skeleton
+        //        }
+        //    }
+        //}
 
-        private void FindPlayerInDepthPixel(short[] depthFrame) {
-            foreach (short depthPixel in depthFrame) {
-                int player = depthPixel & DepthImageFrame.PlayerIndexBitmask;
+        //private void FindPlayerInDepthPixel(short[] depthFrame) {
+        //    foreach (short depthPixel in depthFrame) {
+        //        int player = depthPixel & DepthImageFrame.PlayerIndexBitmask;
 
-                if (player > 0 && this.skeletonData != null) {
-                    Skeleton skeletonAtPixel = this.skeletonData[player - 1];   // Found the player at this pixel
-                    // ...
-                }
-            }
-        }
+        //        if (player > 0 && this.skeletonData != null) {
+        //            Skeleton skeletonAtPixel = this.skeletonData[player - 1];   // Found the player at this pixel
+        //            // ...
+        //        }
+        //    }
+        //}
     }
 }

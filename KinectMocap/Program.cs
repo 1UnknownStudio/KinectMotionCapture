@@ -9,12 +9,10 @@ namespace KinectMocap
     {
         static void Main(string[] args)
         {
-            SkeletalTracker m_skeletalTracker = new SkeletalTracker();
-            m_skeletalTracker.StartKinectST();
+            KinectMocap mocap = new KinectMocap();
+            mocap.Init();
 
-            while (true) { 
-                
-            }
+            while ( mocap.Update() );
         }
     }
 }
