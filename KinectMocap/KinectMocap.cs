@@ -15,10 +15,12 @@ namespace KinectMocap
 
         public void Init() {
             skeletalTracker.StartKinectST();
+            Console.Title = "Kinect Debug";
         }
 
         public bool Update() {
-
+            Console.Clear();
+            skeletalTracker.Debug();
             return true;
         }
     }

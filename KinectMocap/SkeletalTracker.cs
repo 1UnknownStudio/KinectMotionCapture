@@ -27,6 +27,7 @@ namespace KinectMocap {
                 if (j >= NUM_SENSORS)
                     break;
 
+                //TODO: Initialization of kinects is not correct. Might be setting all three to same kinect
                 if (KinectSensor.KinectSensors[i].Status == KinectStatus.Connected) {
                     sensors[j].kinect = KinectSensor.KinectSensors[i];
                     j++;
@@ -51,8 +52,10 @@ namespace KinectMocap {
                 SkeletonSensor temp = null;
 
                 foreach (SkeletonSensor sensor in sensors) {
-                    if (sender == sensor.kinect)
+                    if (sender == sensor.kinect) {
                         temp = sensor;
+                        break;
+                    }
                 }
 
                 if (temp == null) {
@@ -62,6 +65,28 @@ namespace KinectMocap {
 
                 if (skeletonFrame != null && temp.skeletonData != null) // check that a frame is available
                     skeletonFrame.CopySkeletonDataTo(temp.skeletonData); // get the skeletal information in this frame
+            }
+        }
+
+        public void Debug() {
+            for( int i = 0, j = NUM_SENSORS; i < j; i++ ) {
+                Console.WriteLine("Sensor " + i.ToString() + ":");
+                Console.WriteLine(sensors[i].kinect.UniqueKinectId.ToString());
+
+                if (sensors[i] != null){
+
+                    if( sensors[i].kinect.Status == KinectStatus.Connected ) {
+
+                        for (int k = 0, m = 6; k < m; k++) {
+                            if( sensors[i].skeletonData[k] != null )
+                                Console.WriteLine("Skeleton " + k.ToString() + "- " + sensors[i].skeletonData[k].TrackingState.ToString());
+                        }
+                    } else {
+                         Console.WriteLine( "Error- " + sensors[i].kinect.Status.ToString() );
+                    }
+                }
+
+                Console.Write("\n");
             }
         }
 
