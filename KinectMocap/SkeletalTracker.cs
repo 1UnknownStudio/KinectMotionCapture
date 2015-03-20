@@ -34,16 +34,16 @@ namespace KinectMocap {
                 }
             }
 
-            for (int i = 0; i < sensors.Length; i++) {
-                sensors[i].kinect = KinectSensor.KinectSensors.FirstOrDefault(s => s.Status == KinectStatus.Connected); // Get first Kinect Sensor
-                sensors[i].kinect.SkeletonStream.Enable(); // Enable skeletal tracking
+            //for (int i = 0; i < sensors.Length; i++) {
+            //    sensors[i].kinect = KinectSensor.KinectSensors.FirstOrDefault(s => s.Status == KinectStatus.Connected); // Get first Kinect Sensor
+            //    sensors[i].kinect.SkeletonStream.Enable(); // Enable skeletal tracking
 
-                sensors[i].skeletonData = new Skeleton[sensors[i].kinect.SkeletonStream.FrameSkeletonArrayLength]; // Allocate ST data
+            //    sensors[i].skeletonData = new Skeleton[sensors[i].kinect.SkeletonStream.FrameSkeletonArrayLength]; // Allocate ST data
 
-                sensors[i].kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get Ready for Skeleton Ready Events
+            //    sensors[i].kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get Ready for Skeleton Ready Events
 
-                sensors[i].kinect.Start(); // Start Kinect sensor
-            }
+            //    sensors[i].kinect.Start(); // Start Kinect sensor
+            //}
         }
 
         private void kinect_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e) {
@@ -189,5 +189,136 @@ namespace KinectMocap {
         //        }
         //    }
         //}
+
+        public void CreateBVH(ref string output) {
+            // Create first section: Hierarchy
+            output = "HEIRARCHY \r\n";
+            output += "ROOT " + ((JointType) 0).ToString() + "\r\n";
+            output += "{\r\n";
+            output += "\tOFFSET\t0.00\t0.00\t0.00\r\n";
+            output += "\tCHANNELS 6 Xposition Yposition Zposition Zrotation Xrotation Yrotation\r\n";
+
+            // Hipcenter, our ROOT, is connected to:
+            CreateJoint(1, 1, ref output);  // 1, Spine
+            CreateJoint(1, 12, ref output); // 12, HipLeft
+            CreateJoint(1, 16, ref output); // 16, HipRight
+            
+            output += "}\r\n";
+        }
+
+        public void CreateJoint(int depth, int index, ref string output) {
+            for (int i = 0; i < depth; i++)
+                output += "\t";
+            
+            // Write name of joint, if end site just write "End Site"
+            if (index != 3 && index != 7 && index != 11 && index != 15 && index != 19)
+                output += "JOINT " + ((JointType)index).ToString() + "\r\n";
+            else
+                output += "End Site\r\n";
+            for (int i = 0; i < depth; i++)
+                output += "\t";
+            output += "{\r\n";
+
+            for (int i = 0; i < depth+1; i++)
+                output += "\t";            
+            // Write joint offset
+            output += "OFFSET";
+            OutputOffsets(index, ref output);
+
+            
+            // Don't output Channels if we are at one of our end nodes
+            if (index != 3 && index != 7 && index != 11 && index != 15 && index != 19) {
+                for (int i = 0; i < depth + 1; i++)
+                    output += "\t";
+                output += "CHANNELS 3 Zrotation Xrotation Yrotation\r\n";
+            }
+
+            int[] children = new int[1];
+            switch (index) { 
+                case 1:
+                    children = new int[1] { 2 };
+                    break;
+                case 2:
+                    children = new int[3] { 3,4,8 };
+                    break;
+                case 4:
+                    children = new int[1] { 5 };
+                    break;
+                case 5:
+                    children = new int[1] { 6 };
+                    break;
+                case 6:
+                    children = new int[1] { 7 };
+                    break;
+                case 8:
+                    children = new int[1] { 9 };
+                    break;
+                case 9:
+                    children = new int[1] { 10 };
+                    break;
+                case 10:
+                    children = new int[1] { 11 };
+                    break;
+                case 12:
+                    children = new int[1] { 13 };
+                    break;
+                case 13:
+                    children = new int[1] { 14 };
+                    break;
+                case 14:
+                    children = new int[1] { 15 };
+                    break;
+                case 16:
+                    children = new int[1] { 17 };
+                    break;
+                case 17:
+                    children = new int[1] { 18 };
+                    break;
+                case 18:
+                    children = new int[1] { 19 };
+                    break;
+                default:
+                    for (int i = 0; i < depth; i++)
+                        output += "\t";
+                    output += "}\r\n";
+                    return;
+            }
+
+            // Create joints out of children
+            for (int i = 0; i < children.Length; i++) {
+                CreateJoint(depth + 1, children[i], ref output);
+            }
+
+            for (int i = 0; i < depth; i++)
+                output += "\t";
+
+            output += "}\r\n";
+        }
+
+        private void OutputOffsets(int boneIndex, ref string output) {
+            string[] offsets = new string[20];
+
+            offsets[1]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[2]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[3]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[4]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[5]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[6]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[7]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[8]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[9]  = "\t 0.00\t 0.00\t 0.00";
+            offsets[10] = "\t 0.00\t 0.00\t 0.00";
+            offsets[11] = "\t 0.00\t 0.00\t 0.00";
+            offsets[12] = "\t 0.00\t 0.00\t 0.00";
+            offsets[13] = "\t 0.00\t 0.00\t 0.00";
+            offsets[14] = "\t 0.00\t 0.00\t 0.00";
+            offsets[15] = "\t 0.00\t 0.00\t 0.00";
+            offsets[16] = "\t 0.00\t 0.00\t 0.00";
+            offsets[17] = "\t 0.00\t 0.00\t 0.00";
+            offsets[18] = "\t 0.00\t 0.00\t 0.00";
+            offsets[19] = "\t 0.00\t 0.00\t 0.00";
+
+            output += offsets[boneIndex] + "\r\n";
+        }
     }
 }
