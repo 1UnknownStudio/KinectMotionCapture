@@ -1,4 +1,5 @@
-﻿using System;
+﻿#define EXPORT_TEST
+using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,17 +16,19 @@ namespace KinectMocap
     {
         static void Main(string[] args)
         {
-
+#if EXPORT_TEST
             KinectMocap mocap = new KinectMocap();
             mocap.Init();
             string output = "";
             mocap.BVH(ref output);
             System.IO.File.WriteAllText("test.txt", output);
+#else
+            KinectMocap mocap = new KinectMocap();
+            mocap.Init();
 
-            //KinectMocap mocap = new KinectMocap();
-            //mocap.Init();
 
-            //while (mocap.Update()) ;
+            while (mocap.Update()) ;
+#endif
             //using (var game = new GameWindow())
             //{
             //    game.Load += (sender, e) =>
