@@ -19,17 +19,9 @@ namespace KinectMocap {
         private List<Skeleton> trackedSkeletonFrames = new List<Skeleton>();
         bool isRecording = false;
         bool newFrameReady = false;
-        //private SkeletonSensor[] sensors;
-        //private const int NUM_SENSORS = 1;
-        //private KinectSensor kinect;
-        //private Skeleton[] skeletonData;
 
         public void StartKinectST() {
             sensor = new SkeletonSensor();
-            //sensors = new SkeletonSensor[NUM_SENSORS];
-
-            //for (int i = 0; i < NUM_SENSORS; i++)
-            //    sensors[i] = new SkeletonSensor();
 
             while( sensor.kinect == null ) {
                 sensor.kinect = KinectSensor.KinectSensors.FirstOrDefault(s => s.Status == KinectStatus.Connected);
@@ -41,17 +33,6 @@ namespace KinectMocap {
             }
             Console.Clear();
 
-            //for ( int i = 0, j = 0; i < KinectSensor.KinectSensors.Count; i++ ) {
-            //    if (j >= NUM_SENSORS)
-            //        break;
-
-            //    //TODO: Initialization of kinects is not correct. Might be setting all three to same kinect
-            //    if (KinectSensor.KinectSensors[i].Status == KinectStatus.Connected) {
-            //        sensors[j].kinect = KinectSensor.KinectSensors[i];
-            //        j++;
-            //    }
-            //}
-
 #if EXPORT_TEST
 #else
 
@@ -62,18 +43,6 @@ namespace KinectMocap {
             sensor.kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get ready for Skeleton Ready Events
 
             sensor.kinect.Start();
-
-            //for (int i = 0; i < sensors.Length; i++)
-            //{
-            //    sensors[i].kinect = KinectSensor.KinectSensors.FirstOrDefault(s => s.Status == KinectStatus.Connected); // Get first Kinect Sensor
-            //    sensors[i].kinect.SkeletonStream.Enable(); // Enable skeletal tracking
-
-            //    sensors[i].skeletonData = new Skeleton[sensors[i].kinect.SkeletonStream.FrameSkeletonArrayLength]; // Allocate ST data
-
-            //    sensors[i].kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get Ready for Skeleton Ready Events
-
-            //    sensors[i].kinect.Start(); // Start Kinect sensor
-            //}
 #endif
         }
 
@@ -82,23 +51,6 @@ namespace KinectMocap {
                 if (skeletonFrame != null && sensor.skeletonData != null && isRecording == true) {
                     skeletonFrame.CopySkeletonDataTo(sensor.skeletonData);
                 }
-
-                //SkeletonSensor temp = null;
-
-                //foreach (SkeletonSensor sensor in sensors) {
-                //    if (sender == sensor.kinect) {
-                //        temp = sensor;
-                //        break;
-                //    }
-                //}
-
-                //if (temp == null) {
-                //    Console.WriteLine("sender didn't match any active kinects");
-                //    return;
-                //}
-
-                //if (skeletonFrame != null && temp.skeletonData != null) // check that a frame is available
-                //    skeletonFrame.CopySkeletonDataTo(temp.skeletonData); // get the skeletal information in this frame
             }
         }
 
@@ -135,25 +87,6 @@ namespace KinectMocap {
             }
 
             Console.Write("\n");
-            //for( int i = 0, j = NUM_SENSORS; i < j; i++ ) {
-            //    Console.WriteLine("Sensor " + i.ToString() + ":");
-            //    Console.WriteLine(sensors[i].kinect.UniqueKinectId.ToString());
-
-            //    if (sensors[i] != null){
-
-            //        if( sensors[i].kinect.Status == KinectStatus.Connected ) {
-
-            //            for (int k = 0, m = 6; k < m; k++) {
-            //                if( sensors[i].skeletonData[k] != null )
-            //                    Console.WriteLine("Skeleton " + k.ToString() + "- " + sensors[i].skeletonData[k].TrackingState.ToString());
-            //            }
-            //        } else {
-            //             Console.WriteLine( "Error- " + sensors[i].kinect.Status.ToString() );
-            //        }
-            //    }
-
-            //    Console.Write("\n");
-            //}
         }
 
         private void TrackClosestSkeleton()
