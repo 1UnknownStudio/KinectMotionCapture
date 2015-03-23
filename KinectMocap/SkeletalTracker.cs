@@ -23,6 +23,7 @@ namespace KinectMocap {
        
         private bool isRecording = false;
         private bool newFrameReady = false;
+        private string output;
 
         public void Init() {
             // Start Kinect skeleton tracking
@@ -115,7 +116,7 @@ namespace KinectMocap {
         private void HandleInput() {
             // Check for keyboard input
             if (Console.KeyAvailable)
-                keyInfo = Console.ReadKey();
+                keyInfo = Console.ReadKey(true);
             else
                 return;
 
@@ -123,6 +124,9 @@ namespace KinectMocap {
             { 
                 case ConsoleKey.R:
                     isRecording = !isRecording;
+                    break;
+                case ConsoleKey.G:
+                    CreateBVH();
                     break;
             }
         }
@@ -204,15 +208,17 @@ namespace KinectMocap {
         //    }
         //}
 
-        public void CreateBVH(ref string output) {
+        public void CreateBVH() {
             // Create first section: Hierarchy
-            CreateHierarchy(ref output);
+            CreateHierarchy();
 
             //Create second section: Motion
-            CreateMotion(ref output);
+            CreateMotion();
+
+            System.IO.File.WriteAllText("test.txt", output);
         }
 
-        private void CreateHierarchy(ref string output) {
+        private void CreateHierarchy() {
             output = "HEIRARCHY \r\n";
             output += "ROOT " + ((JointType)0).ToString() + "\r\n";
             output += "{\r\n";
@@ -220,14 +226,14 @@ namespace KinectMocap {
             output += "\tCHANNELS 6 Xposition Yposition Zposition Zrotation Xrotation Yrotation\r\n";
 
             // Hipcenter, our ROOT, is connected to:
-            CreateJoint(1, 1, ref output);  // 1, Spine
-            CreateJoint(1, 12, ref output); // 12, HipLeft
-            CreateJoint(1, 16, ref output); // 16, HipRight
+            CreateJoint(1, 1);  // 1, Spine
+            CreateJoint(1, 12); // 12, HipLeft
+            CreateJoint(1, 16); // 16, HipRight
 
             output += "}\r\n";
         }
 
-        private void CreateJoint(int depth, int index, ref string output) {
+        private void CreateJoint(int depth, int index) {
             for (int i = 0; i < depth; i++)
                 output += "\t";
             
@@ -307,7 +313,7 @@ namespace KinectMocap {
 
             // Create joints out of children
             for (int i = 0; i < children.Length; i++) {
-                CreateJoint(depth + 1, children[i], ref output);
+                CreateJoint(depth + 1, children[i]);
             }
 
             for (int i = 0; i < depth; i++)
@@ -342,28 +348,49 @@ namespace KinectMocap {
             output += skeletonOffsets[boneIndex] + "\r\n";
         }
 
-        private void CreateMotion(ref string output) {
+        private void CreateMotion() {
             output += "MOTION\r\n";
             output += "Frames:\t" + trackedSkeletonFrames.Count + "\r\n";
             output += "Frame Time: 0.033333\r\n";
 
-            CreateMotionData(ref output);
+            CreateMotionData();
         }
 
-        private void CreateMotionData(ref string output) {
+        private void CreateMotionData() {
             foreach (Skeleton skeleton in trackedSkeletonFrames) {
                 // Get Root's position
-                output += skeleton.Joints[JointType.HipCenter].Position.X.ToString() + " ";
-                output += skeleton.Joints[JointType.HipCenter].Position.Y.ToString() + " ";
-                output += skeleton.Joints[JointType.HipCenter].Position.Z.ToString() + " ";
+                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.X, 2).ToString() + " ";
+                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.Y, 2).ToString() + " ";
+                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.Z, 2).ToString() + " ";
 
                 // Get bone orientations
                 for (int i = 0, j = skeleton.Joints.Count; i < j; i++) {
                     // TODO: Compute joint rotations
+                    Vector4 jointRots = QuatertionToEuler(skeleton.BoneOrientations[(JointType)i].HierarchicalRotation.Quaternion);
+
+                    output += Math.Round(jointRots.Z, 2) + " ";
+                    output += Math.Round(jointRots.X, 2) + " ";
+                    output += Math.Round(jointRots.Y, 2) + " ";
                 }
 
                 output += "\r\n";
             }
+        }
+
+        private Vector4 QuatertionToEuler(Vector4 quatRot) {
+            Vector4 eulerRot = new Vector4();
+
+            // Pitch
+            eulerRot.X = (float)Math.Atan2(2 * quatRot.X * quatRot.W - 2 * quatRot.Y * quatRot.Z, 1 - 2 * quatRot.X * quatRot.X - 2 * quatRot.Z * quatRot.Z);
+            eulerRot.X *= 180f / (float)Math.PI;
+            // Yaw
+            eulerRot.Y = (float)Math.Asin(2 * quatRot.X * quatRot.Y + 2 * quatRot.Z * quatRot.W);
+            eulerRot.Y *= 180f / (float)Math.PI;
+            // Roll
+            eulerRot.Z = (float)Math.Atan2(2 * quatRot.Y * quatRot.W - 2 * quatRot.X * quatRot.Z, 1 - 2 * quatRot.Y * quatRot.Y - 2 * quatRot.Z * quatRot.Z);
+            eulerRot.Z *= 180f / (float)Math.PI;
+
+            return eulerRot;
         }
     }
 }

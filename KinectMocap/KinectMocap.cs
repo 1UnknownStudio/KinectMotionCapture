@@ -26,7 +26,7 @@ namespace KinectMocap
         }
 
         public void BVH(ref string output) {
-            skeletalTracker.CreateBVH(ref output);
+            skeletalTracker.CreateBVH();
         }
     }
 }
