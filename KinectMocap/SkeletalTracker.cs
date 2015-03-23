@@ -20,7 +20,8 @@ namespace KinectMocap {
         ConsoleKeyInfo keyInfo;
         private int trackedSkeletonIndex = -1;
         private List<Skeleton> trackedSkeletonFrames = new List<Skeleton>();
-       
+
+        private string animationName = "Animation";
         private bool isRecording = false;
         private bool newFrameReady = false;
         private string output;
@@ -216,11 +217,11 @@ namespace KinectMocap {
             //Create second section: Motion
             CreateMotion();
 
-            System.IO.File.WriteAllText("test.bvh", output);
+            System.IO.File.WriteAllText(animationName + ".bvh", output);
         }
 
         private void CreateHierarchy() {
-            output = "HEIRARCHY \r\n";
+            output = "HIERARCHY\r\n";
             output += "ROOT " + ((JointType)0).ToString() + "\r\n";
             output += "{\r\n";
             output += "\tOFFSET\t0.00\t0.00\t0.00\r\n";
