@@ -1,6 +1,8 @@
 ﻿//#define EXPORT_TEST
 
 using System;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,12 +17,19 @@ namespace KinectMocap {
 
     class SkeletalTracker {
         private SkeletonSensor sensor;
+        ConsoleKeyInfo keyInfo;
         private int trackedSkeletonIndex = -1;
         private List<Skeleton> trackedSkeletonFrames = new List<Skeleton>();
-        bool isRecording = false;
-        bool newFrameReady = false;
+       
+        private bool isRecording = false;
+        private bool newFrameReady = false;
 
-        public void StartKinectST() {
+        public void Init() {
+            // Start Kinect skeleton tracking
+            StartKinectST();
+        }
+
+        private void StartKinectST() {
             sensor = new SkeletonSensor();
 
             while( sensor.kinect == null ) {
@@ -43,6 +52,7 @@ namespace KinectMocap {
             sensor.kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get ready for Skeleton Ready Events
 
             sensor.kinect.Start();
+
 #endif
         }
 
@@ -50,17 +60,85 @@ namespace KinectMocap {
             using (SkeletonFrame skeletonFrame = e.OpenSkeletonFrame()) { // Open the Skeleton frame
                 if (skeletonFrame != null && sensor.skeletonData != null && isRecording == true) {
                     skeletonFrame.CopySkeletonDataTo(sensor.skeletonData);
+                    newFrameReady = true;
                 }
             }
         }
 
         public void Update() {
-            if (isRecording && newFrameReady) { 
+            HandleInput();
+
+            if (isRecording && newFrameReady && sensor.skeletonData != null) {
+                // Check if we are currently tracking a skeleton
+                if(trackedSkeletonIndex == -1) {
+                    // If we aren't, try to get the first skeleton that the kinect sees or exit the update loop
+                    for(int i = 0, j = sensor.skeletonData.Length; i < j; i++) {
+                        if( sensor.skeletonData[i].TrackingState == SkeletonTrackingState.Tracked ) {
+                            trackedSkeletonIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (trackedSkeletonIndex == -1) {
+                        newFrameReady = false;
+                        return;
+                    }
+                }
+
+                // If we are still tracking the same skeleton, push the new frame to the frame list. If we can't find the skeleton in the frame, stop tracking it.
+                if (sensor.skeletonData[trackedSkeletonIndex].TrackingState == SkeletonTrackingState.Tracked) {
+                    Skeleton skeletonCopy = Clone(sensor.skeletonData[trackedSkeletonIndex]);
+                    trackedSkeletonFrames.Add(skeletonCopy);
+                } else {
+                    trackedSkeletonIndex = -1;
+                }
+
+                newFrameReady = false;
+            }
+        }
+
+        private Skeleton Clone(Skeleton skOrigin)
+        {
+            // It serializes the skeleton to the memory and retrieves again, making a copy of the object
+            MemoryStream ms = new MemoryStream();
+            BinaryFormatter bf = new BinaryFormatter();
+
+            bf.Serialize(ms, skOrigin);
+
+            ms.Position = 0;
+            object obj = bf.Deserialize(ms);
+            ms.Close();
+
+            return obj as Skeleton;
+        }
+
+        private void HandleInput() {
+            // Check for keyboard input
+            if (Console.KeyAvailable)
+                keyInfo = Console.ReadKey();
+            else
+                return;
+
+            switch (keyInfo.Key) 
+            { 
+                case ConsoleKey.R:
+                    isRecording = !isRecording;
+                    break;
             }
         }
 
         public void Debug() {
-            Console.WriteLine("Sensor:");
+            Console.WriteLine("Sensor: " + sensor.kinect.Status.ToString());
+
+            if (!isRecording)
+                Console.WriteLine("Press \'R\' to start recording");
+            else {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("■" + " Recording");
+                Console.ResetColor();
+
+                Console.WriteLine("Press \'R\' to stop recording");
+            }
 
             if (sensor != null) {
 
@@ -81,8 +159,6 @@ namespace KinectMocap {
                             }
                         }
                     }
-                } else {
-                    Console.WriteLine("Error- " + sensor.kinect.Status.ToString());
                 }
             }
 
@@ -268,7 +344,7 @@ namespace KinectMocap {
 
         private void CreateMotion(ref string output) {
             output += "MOTION\r\n";
-            output += "Frames:\t" + trackedSkeletonFrames.Count + "\r\n"; // TODO: Get the number of frames from the skeleton[]
+            output += "Frames:\t" + trackedSkeletonFrames.Count + "\r\n";
             output += "Frame Time: 0.033333\r\n";
 
             CreateMotionData(ref output);
