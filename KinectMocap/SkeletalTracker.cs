@@ -24,6 +24,7 @@ namespace KinectMocap {
         private bool isRecording = false;
         private bool newFrameReady = false;
         private string output;
+        private const int PRECISION = 2;
 
         public void Init() {
             // Start Kinect skeleton tracking
@@ -215,7 +216,7 @@ namespace KinectMocap {
             //Create second section: Motion
             CreateMotion();
 
-            System.IO.File.WriteAllText("test.txt", output);
+            System.IO.File.WriteAllText("test.bvh", output);
         }
 
         private void CreateHierarchy() {
@@ -359,18 +360,18 @@ namespace KinectMocap {
         private void CreateMotionData() {
             foreach (Skeleton skeleton in trackedSkeletonFrames) {
                 // Get Root's position
-                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.X, 2).ToString() + " ";
-                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.Y, 2).ToString() + " ";
-                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.Z, 2).ToString() + " ";
+                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.X, PRECISION).ToString() + " ";
+                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.Y, PRECISION).ToString() + " ";
+                output += Math.Round(skeleton.Joints[JointType.HipCenter].Position.Z, PRECISION).ToString() + " ";
 
                 // Get bone orientations
                 for (int i = 0, j = skeleton.Joints.Count; i < j; i++) {
                     // TODO: Compute joint rotations
                     Vector4 jointRots = QuatertionToEuler(skeleton.BoneOrientations[(JointType)i].HierarchicalRotation.Quaternion);
 
-                    output += Math.Round(jointRots.Z, 2) + " ";
-                    output += Math.Round(jointRots.X, 2) + " ";
-                    output += Math.Round(jointRots.Y, 2) + " ";
+                    output += Math.Round(jointRots.Z, PRECISION) + " ";
+                    output += Math.Round(jointRots.X, PRECISION) + " ";
+                    output += Math.Round(jointRots.Y, PRECISION) + " ";
                 }
 
                 output += "\r\n";
