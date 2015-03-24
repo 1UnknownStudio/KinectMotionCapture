@@ -1,6 +1,4 @@
-﻿//#define EXPORT_TEST
-
-using System;
+﻿using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Collections.Generic;
@@ -21,11 +19,14 @@ namespace KinectMocap {
         private int trackedSkeletonIndex = -1;
         private List<Skeleton> trackedSkeletonFrames = new List<Skeleton>();
 
-        private string animationName = "Animation";
+        private string animationName = "test_skeleton02";
         private bool isRecording = false;
         private bool newFrameReady = false;
         private string output;
-        private const int PRECISION = 2;
+        private const int PRECISION = 3;
+
+        private int updateFrames = 0;
+        private int eventFrames = 0;
 
         public void Init() {
             // Start Kinect skeleton tracking
@@ -54,6 +55,8 @@ namespace KinectMocap {
 
             sensor.kinect.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(kinect_SkeletonFrameReady); // Get ready for Skeleton Ready Events
 
+            
+
             sensor.kinect.Start();
 
 #endif
@@ -64,6 +67,7 @@ namespace KinectMocap {
                 if (skeletonFrame != null && sensor.skeletonData != null && isRecording == true) {
                     skeletonFrame.CopySkeletonDataTo(sensor.skeletonData);
                     newFrameReady = true;
+                    eventFrames++;
                 }
             }
         }
@@ -90,8 +94,9 @@ namespace KinectMocap {
 
                 // If we are still tracking the same skeleton, push the new frame to the frame list. If we can't find the skeleton in the frame, stop tracking it.
                 if (sensor.skeletonData[trackedSkeletonIndex].TrackingState == SkeletonTrackingState.Tracked) {
-                    Skeleton skeletonCopy = Clone(sensor.skeletonData[trackedSkeletonIndex]);
+                    Skeleton skeletonCopy = CloneSkeleton(sensor.skeletonData[trackedSkeletonIndex]);
                     trackedSkeletonFrames.Add(skeletonCopy);
+                    updateFrames++;
                 } else {
                     trackedSkeletonIndex = -1;
                 }
@@ -100,7 +105,7 @@ namespace KinectMocap {
             }
         }
 
-        private Skeleton Clone(Skeleton skOrigin)
+        private Skeleton CloneSkeleton(Skeleton skOrigin)
         {
             // It serializes the skeleton to the memory and retrieves again, making a copy of the object
             MemoryStream ms = new MemoryStream();
@@ -113,6 +118,19 @@ namespace KinectMocap {
             ms.Close();
 
             return obj as Skeleton;
+        }
+
+        private Skeleton[] CloneSkeletonArray(Skeleton[] a) {
+            MemoryStream ms = new MemoryStream();
+            BinaryFormatter bf = new BinaryFormatter();
+
+            bf.Serialize(ms, a);
+
+            ms.Position = 0;
+            object obj = bf.Deserialize(ms);
+            ms.Close();
+
+            return obj as Skeleton[];
         }
 
         private void HandleInput() {
@@ -327,25 +345,25 @@ namespace KinectMocap {
         private void OutputOffsets(int boneIndex, ref string output) {
             string[] skeletonOffsets = new string[20];
 
-            skeletonOffsets[(int)JointType.Spine]           = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.ShoulderCenter]  = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.Head]            = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.ShoulderLeft]    = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.ElbowLeft]       = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.WristLeft]       = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.HandLeft]        = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.ShoulderRight]   = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.ElbowRight]      = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.WristRight]      = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.HandRight]       = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.HipLeft]         = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.KneeLeft]        = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.AnkleLeft]       = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.FootLeft]        = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.HipRight]        = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.KneeRight]       = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.AnkleRight]      = "\t 0.00\t 0.00\t 0.00";
-            skeletonOffsets[(int)JointType.FootRight]       = "\t 0.00\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.Spine]           = "\t 0.00\t 0.20\t 0.00";
+            skeletonOffsets[(int)JointType.ShoulderCenter]  = "\t 0.00\t 0.75\t 0.00";
+            skeletonOffsets[(int)JointType.Head]            = "\t 0.00\t 0.50\t 0.00";
+            skeletonOffsets[(int)JointType.ShoulderLeft]    = "\t 0.40\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.ElbowLeft]       = "\t 0.30\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.WristLeft]       = "\t 0.40\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.HandLeft]        = "\t 0.30\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.ShoulderRight]   = "\t -0.40\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.ElbowRight]      = "\t -0.30\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.WristRight]      = "\t -0.40\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.HandRight]       = "\t -0.30\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.HipLeft]         = "\t 0.30\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.KneeLeft]        = "\t 0.00\t -0.50\t 0.00";
+            skeletonOffsets[(int)JointType.AnkleLeft]       = "\t 0.00\t -0.50\t 0.00";
+            skeletonOffsets[(int)JointType.FootLeft]        = "\t 0.00\t 0.00\t 0.20";
+            skeletonOffsets[(int)JointType.HipRight]        = "\t -0.30\t 0.00\t 0.00";
+            skeletonOffsets[(int)JointType.KneeRight]       = "\t 0.00\t -0.50\t 0.00";
+            skeletonOffsets[(int)JointType.AnkleRight]      = "\t 0.00\t -0.50\t 0.00";
+            skeletonOffsets[(int)JointType.FootRight]       = "\t 0.00\t 0.00\t 0.20";
 
             output += skeletonOffsets[boneIndex] + "\r\n";
         }
@@ -368,7 +386,8 @@ namespace KinectMocap {
                 // Get bone orientations
                 for (int i = 0, j = skeleton.Joints.Count; i < j; i++) {
                     // TODO: Compute joint rotations
-                    Vector4 jointRots = QuatertionToEuler(skeleton.BoneOrientations[(JointType)i].HierarchicalRotation.Quaternion);
+                    //Vector4 jointRots = QuatertionToEuler(skeleton.BoneOrientations[(JointType)i].HierarchicalRotation.Quaternion);
+                    Vector4 jointRots = MatrixToEuler(skeleton.BoneOrientations[(JointType)i].HierarchicalRotation.Matrix);
 
                     output += Math.Round(jointRots.Z, PRECISION) + " ";
                     output += Math.Round(jointRots.X, PRECISION) + " ";
@@ -391,6 +410,22 @@ namespace KinectMocap {
             // Roll
             eulerRot.Z = (float)Math.Atan2(2 * quatRot.Y * quatRot.W - 2 * quatRot.X * quatRot.Z, 1 - 2 * quatRot.Y * quatRot.Y - 2 * quatRot.Z * quatRot.Z);
             eulerRot.Z *= 180f / (float)Math.PI;
+
+            return eulerRot;
+        }
+
+        private Vector4 MatrixToEuler(Matrix4 rotMat) { 
+            Vector4 eulerRot = new Vector4();
+
+            // Roll
+            eulerRot.Z = (float)Math.Atan2(rotMat.M31, rotMat.M32);
+            eulerRot.Z *= 180f / (float)Math.PI;
+            // Pitch
+            eulerRot.X = (float)Math.Acos(rotMat.M33);
+            eulerRot.X *= 180f / (float)Math.PI;
+            // Yaw
+            eulerRot.Y = -(float)Math.Atan2(rotMat.M13, rotMat.M23);
+            eulerRot.Y *= 180f / (float)Math.PI;
 
             return eulerRot;
         }
